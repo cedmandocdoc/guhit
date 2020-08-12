@@ -1,6 +1,6 @@
-import { listen, pipe, emitter, CANCEL } from 'agos';
+import { listen, pipe, emitter, CANCEL } from "agos";
 
-const noop = () => { };
+const noop = () => {};
 
 export const subscribe = (sink, external) => {
   if (typeof sink === "function")
@@ -19,14 +19,17 @@ export const createState = state => {
   const [control, subject] = emitter();
   control.open();
   control.next(_state);
-  return [subject, (data) => {
-    if (typeof data === "function") _state = data(_state);
-    else _state = data;
-    control.next(_state);
-  }];
+  return [
+    subject,
+    data => {
+      if (typeof data === "function") _state = data(_state);
+      else _state = data;
+      control.next(_state);
+    }
+  ];
 };
 
-export const h = (name, attributes, children, mount = () => { }) => {
+export const h = (name, attributes, children, mount = () => {}) => {
   const element = document.createElement(name);
   const keys = Object.keys(attributes);
 
@@ -54,7 +57,7 @@ export const h = (name, attributes, children, mount = () => { }) => {
       element.insertBefore(child, _children[_index]);
     } else {
       // replace
-      element.replaceChild(child, _children[index])
+      element.replaceChild(child, _children[index]);
     }
     _children[index] = child;
     _cleanups[index] = mount();
@@ -67,26 +70,27 @@ export const h = (name, attributes, children, mount = () => { }) => {
     _children[index] = null;
     _cleanups[index] && _cleanups[index]();
     _cleanups[index] = null;
-  }
-
+  };
 
   for (let index = 0; index < children.length; index++) {
     _children[index] = null;
     _cleanups[index] = null;
     const child = children[index];
-    if (typeof child === 'string' || typeof child === "number") insert(index, document.createTextNode(child), () => { });
-    else if (child instanceof Array) insert(index, child[0], child[1])
+    if (typeof child === "string" || typeof child === "number")
+      insert(index, document.createTextNode(child), () => {});
+    else if (child instanceof Array) insert(index, child[0], child[1]);
     else {
       pipe(
         child,
         subscribe(data => {
-          if (typeof data === 'string' || typeof data === "number") insert(index, document.createTextNode(data), () => { });
-          else if (data instanceof Array) insert(index, data[0], data[1])
-          else if (data === null || data === false || data === undefined) remove(index);
+          if (typeof data === "string" || typeof data === "number")
+            insert(index, document.createTextNode(data), () => {});
+          else if (data instanceof Array) insert(index, data[0], data[1]);
+          else if (data === null || data === false || data === undefined)
+            remove(index);
         }, subject)
-      )
+      );
     }
-
   }
 
   const cleanup = () => {
@@ -98,13 +102,16 @@ export const h = (name, attributes, children, mount = () => { }) => {
     for (let index = 0; index < _children.length; index++) {
       _children[index] = null;
     }
-  }
+  };
 
-  return [element, () => {
-    const _c = mount();
-    return () => {
-      cleanup();
-      _c();
+  return [
+    element,
+    () => {
+      const _c = mount();
+      return () => {
+        cleanup();
+        _c();
+      };
     }
-  }];
+  ];
 };
