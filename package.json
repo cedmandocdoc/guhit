@@ -1,0 +1,39 @@
+{
+  "name": "guhit",
+  "version": "0.0.0",
+  "description": "A reactive JavaScript library for building web user interfaces",
+  "homepage": "https://github.com/cedmandocdoc/guhit",
+  "main": "dist/guhit.cjs.js",
+  "module": "dist/guhit.esm.js",
+  "browser": "dist/guhit.umd.js",
+  "repository": "git@github.com:cedmandocdoc/guhit.git",
+  "author": "Cedrick Mandocdoc <cedrickmandocdoc@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "lint": "eslint 'src/**/*.js' 'test/**/*.js'",
+    "format": "prettier --write 'src/**/*.js' 'test/**/*.js'",
+    "clean": "rm -rf ./dist",
+    "build": "yarn clean && rollup -c",
+    "dev": "yarn clean && rollup -c -w -m",
+    "test": "jest",
+    "prepare": "yarn lint && yarn format && yarn test && yarn build"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.21",
+    "eslint": "^6.6.0",
+    "eslint-config-prettier": "^6.5.0",
+    "eslint-plugin-prettier": "^3.1.1",
+    "jest": "^24.9.0",
+    "prettier": "^1.18.2",
+    "rollup": "^1.26.2",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0"
+  },
+  "dependencies": {
+    "agos": "^0.5.0-alpha.3"
+  }
+}
