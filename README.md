@@ -2,7 +2,15 @@
 
 A reactive JavaScript library for building web user interfaces
 
-# Example
+## Installation
+
+Install it using npm or yarn.
+
+```bash
+npm install agos guhit
+```
+
+## Example
 
 ```javascript
 import { pipe, map } from "agos";
