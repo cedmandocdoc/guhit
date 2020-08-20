@@ -1,6 +1,6 @@
 import { subscribe, pipe, emitter, Observable } from "agos";
 
-const noop = () => { };
+const noop = () => {};
 
 export const createState = state => {
   let _state = state;
@@ -18,9 +18,9 @@ export const createState = state => {
 };
 
 class GuhitNode {
-  constructor(node, properties = {}, onMount = () => { }) {
+  constructor(node, properties = {}, onMount = () => {}) {
     this.node = node;
-    this.onMount = (element) => {
+    this.onMount = element => {
       const propertyKeys = Object.keys(properties);
 
       const [control, subject] = emitter();
@@ -31,15 +31,12 @@ class GuhitNode {
         if (propertyValue instanceof Observable) {
           pipe(
             propertyValue,
-            subscribe(
-              data => {
-                element[propertyKey] = data
-              },
-              subject
-            )
+            subscribe(data => {
+              element[propertyKey] = data;
+            }, subject)
           );
         } else {
-          element[propertyKey] = propertyValue
+          element[propertyKey] = propertyValue;
         }
       }
 
@@ -48,7 +45,7 @@ class GuhitNode {
       return () => {
         control.next([Observable.CANCEL]);
         unmount();
-      }
+      };
     };
   }
 }
@@ -74,12 +71,9 @@ class GuhitElement extends GuhitNode {
         if (attributeValue instanceof Observable) {
           pipe(
             attributeValue,
-            subscribe(
-              data => {
-                element.setAttribute(attributeKey, data);
-              },
-              subject
-            )
+            subscribe(data => {
+              element.setAttribute(attributeKey, data);
+            }, subject)
           );
         } else {
           element.setAttribute(attributeKey, attributeValue);
@@ -93,12 +87,13 @@ class GuhitElement extends GuhitNode {
         control.next([Observable.CANCEL]);
         unmountChildren();
         unmount();
-      }
-    })
+      };
+    });
   }
 }
 
-export const e = (name, attributes, properties, children, onMount) => new GuhitElement(name, attributes, properties, children, onMount);
+export const e = (name, attributes, properties, children, onMount) =>
+  new GuhitElement(name, attributes, properties, children, onMount);
 
 export const t = (text, onMount) => new GuhitText(text, onMount);
 
@@ -111,7 +106,6 @@ export const mount = (parent, children) => {
   const nodes = [];
   const cleanups = [];
   const [control, subject] = emitter();
-
 
   const insert = (child, index) => {
     if (!nodes[index]) {
@@ -129,12 +123,12 @@ export const mount = (parent, children) => {
     }
     nodes[index] = child;
     cleanups[index] = child.onMount(child.node);
-  }
+  };
 
-  const remove = (index) => {
+  const remove = index => {
     if (!nodes[index]) return;
     // needs to remove or clean up observables
-    parent.removeChild(nodes[index].node)
+    parent.removeChild(nodes[index].node);
     nodes[index] = null;
     const cleanup = cleanups[index];
 
@@ -142,7 +136,7 @@ export const mount = (parent, children) => {
       cleanup();
       cleanups[index] = null;
     }
-  }
+  };
 
   children = Array.isArray(children) ? children : [children];
 
@@ -157,21 +151,20 @@ export const mount = (parent, children) => {
         child,
         subscribe(data => {
           if (data instanceof GuhitNode) {
-            insert(data, index)
+            insert(data, index);
           } else if (data === null) {
             remove(index);
           } else {
-            insert(t(data), index)
+            insert(t(data), index);
           }
         }, subject)
-      )
+      );
     } else if (child instanceof GuhitNode) {
       insert(child, index);
     } else if (child !== null) {
-      insert(t(child), index)
+      insert(t(child), index);
     }
   }
-
 
   return () => {
     control.next([Observable.CANCEL]);
@@ -183,5 +176,5 @@ export const mount = (parent, children) => {
     for (let index = 0; index < nodes.length; index++) {
       nodes[index] = null;
     }
-  }
-}
+  };
+};
