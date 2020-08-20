@@ -1,18 +1,6 @@
-import { listen, pipe, emitter, CANCEL } from "agos";
+import { subscribe, pipe, emitter, Observable } from "agos";
 
-const noop = () => {};
-
-export const subscribe = (sink, external) => {
-  if (typeof sink === "function")
-    return listen(noop, sink, noop, noop, external);
-  return listen(sink.open, sink.next, sink.fail, sink.done, external);
-};
-
-export const mount = (root, destination) => {
-  const [element, mount] = root;
-  destination.appendChild(element);
-  mount();
-};
+const noop = () => { };
 
 export const createState = state => {
   let _state = state;
@@ -29,89 +17,171 @@ export const createState = state => {
   ];
 };
 
-export const h = (name, attributes, children, mount = () => {}) => {
-  const element = document.createElement(name);
-  const keys = Object.keys(attributes);
+class GuhitNode {
+  constructor(node, properties = {}, onMount = () => { }) {
+    this.node = node;
+    this.onMount = (element) => {
+      const propertyKeys = Object.keys(properties);
 
-  const [control, subject] = emitter();
-  for (let index = 0; index < keys.length; index++) {
-    const key = keys[index];
-    const source = attributes[key];
-    pipe(
-      source,
-      subscribe(data => {
-        element.setAttribute(key, data);
-      }, subject)
-    );
+      const [control, subject] = emitter();
+      for (let index = 0; index < propertyKeys.length; index++) {
+        const propertyKey = propertyKeys[index];
+        const propertyValue = properties[propertyKey];
+
+        if (propertyValue instanceof Observable) {
+          pipe(
+            propertyValue,
+            subscribe(
+              data => {
+                element[propertyKey] = data
+              },
+              subject
+            )
+          );
+        } else {
+          element[propertyKey] = propertyValue
+        }
+      }
+
+      const unmount = (onMount && onMount(element)) || noop;
+
+      return () => {
+        control.next([Observable.CANCEL]);
+        unmount();
+      }
+    };
   }
+}
 
-  const _children = [];
-  const _cleanups = [];
+class GuhitText extends GuhitNode {
+  constructor(text, properties, mount) {
+    super(document.createTextNode(text), properties, mount);
+  }
+}
 
-  const insert = (index, child, mount) => {
-    if (!_children[index]) {
+class GuhitElement extends GuhitNode {
+  constructor(name, attributes, properties, children, onMount) {
+    const element = document.createElement(name);
+    super(element, properties, element => {
+      const attributeKeys = Object.keys(attributes);
+      // const propertyKeys = Object.keys(properties);
+
+      const [control, subject] = emitter();
+      for (let index = 0; index < attributeKeys.length; index++) {
+        const attributeKey = attributeKeys[index];
+        const attributeValue = attributes[attributeKey];
+
+        if (attributeValue instanceof Observable) {
+          pipe(
+            attributeValue,
+            subscribe(
+              data => {
+                element.setAttribute(attributeKey, data);
+              },
+              subject
+            )
+          );
+        } else {
+          element.setAttribute(attributeKey, attributeValue);
+        }
+      }
+
+      const unmountChildren = mount(element, children);
+      const unmount = (onMount && onMount(element)) || noop;
+
+      return () => {
+        control.next([Observable.CANCEL]);
+        unmountChildren();
+        unmount();
+      }
+    })
+  }
+}
+
+export const e = (name, attributes, properties, children, onMount) => new GuhitElement(name, attributes, properties, children, onMount);
+
+export const t = (text, onMount) => new GuhitText(text, onMount);
+
+// children
+// - observable -> observable that emits a children type
+// - element -> insert or replace the child with the element and run the mount
+// - null -> delete the child and run unmount
+// - else -> create a text element
+export const mount = (parent, children) => {
+  const nodes = [];
+  const cleanups = [];
+  const [control, subject] = emitter();
+
+
+  const insert = (child, index) => {
+    if (!nodes[index]) {
       // insert
       let _index = index + 1;
 
-      while (!_children[_index] && _index <= _children.length) _index++;
-      element.insertBefore(child, _children[_index]);
+      while (!nodes[_index] && _index <= nodes.length) _index++;
+
+      parent.insertBefore(child.node, nodes[_index] && nodes[_index].node);
     } else {
+      const cleanup = cleanups[index];
+      cleanup && cleanup();
       // replace
-      element.replaceChild(child, _children[index]);
+      parent.replaceChild(child.node, nodes[index] && nodes[index].node);
     }
-    _children[index] = child;
-    _cleanups[index] = mount();
-  };
+    nodes[index] = child;
+    cleanups[index] = child.onMount(child.node);
+  }
 
-  const remove = index => {
-    if (!_children[index]) return;
+  const remove = (index) => {
+    if (!nodes[index]) return;
     // needs to remove or clean up observables
-    _children[index].remove();
-    _children[index] = null;
-    _cleanups[index] && _cleanups[index]();
-    _cleanups[index] = null;
-  };
+    parent.removeChild(nodes[index].node)
+    nodes[index] = null;
+    const cleanup = cleanups[index];
 
-  for (let index = 0; index < children.length; index++) {
-    _children[index] = null;
-    _cleanups[index] = null;
-    const child = children[index];
-    if (typeof child === "string" || typeof child === "number")
-      insert(index, document.createTextNode(child), () => {});
-    else if (child instanceof Array) insert(index, child[0], child[1]);
-    else {
-      pipe(
-        child,
-        subscribe(data => {
-          if (typeof data === "string" || typeof data === "number")
-            insert(index, document.createTextNode(data), () => {});
-          else if (data instanceof Array) insert(index, data[0], data[1]);
-          else if (data === null || data === false || data === undefined)
-            remove(index);
-        }, subject)
-      );
+    if (cleanup) {
+      cleanup();
+      cleanups[index] = null;
     }
   }
 
-  const cleanup = () => {
-    control.next([CANCEL]);
-    for (let index = 0; index < _cleanups.length; index++) {
-      const clean = _cleanups[index];
-      clean && clean();
-    }
-    for (let index = 0; index < _children.length; index++) {
-      _children[index] = null;
-    }
-  };
+  children = Array.isArray(children) ? children : [children];
 
-  return [
-    element,
-    () => {
-      const _c = mount();
-      return () => {
-        cleanup();
-        _c();
-      };
+  for (let index = 0; index < children.length; index++) {
+    nodes[index] = null;
+    cleanups[index] = null;
+
+    const child = children[index];
+
+    if (child instanceof Observable) {
+      pipe(
+        child,
+        subscribe(data => {
+          if (data instanceof GuhitNode) {
+            insert(data, index)
+          } else if (data === null) {
+            remove(index);
+          } else {
+            insert(t(data), index)
+          }
+        }, subject)
+      )
+    } else if (child instanceof GuhitNode) {
+      insert(child, index);
+    } else if (child !== null) {
+      insert(t(child), index)
     }
-  ];
-};
+  }
+
+
+  return () => {
+    control.next([Observable.CANCEL]);
+    for (let index = 0; index < cleanups.length; index++) {
+      cleanups[index]();
+      cleanups[index] = null;
+    }
+
+    for (let index = 0; index < nodes.length; index++) {
+      nodes[index] = null;
+    }
+  }
+}

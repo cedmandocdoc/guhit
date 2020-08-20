@@ -14,7 +14,7 @@ npm install agos guhit
 
 ```javascript
 import { pipe, map } from "agos";
-import { mount, createState, h } from "./src";
+import { mount, createState, e } from "./src";
 
 const TextCount = count => {
   // return a transformed id (id-{count})
@@ -33,7 +33,7 @@ const TextCount = count => {
   );
 
   // return a <p> with id and text count changing
-  return h("p", { id: countId }, ["Current count: ", currentCount]);
+  return e("p", { id: countId }, {}, ["Current count: ", currentCount]);
 };
 
 const App = () => {
@@ -55,8 +55,8 @@ const App = () => {
   };
 
   // return a div with text count
-  return h("div", {}, ["Hello There", TextCount(count)], onMount);
+  return e("div", {}, {}, ["Hello There", TextCount(count)], onMount);
 };
 
-mount(App(), document.getElementById("app"));
+mount(document.getElementById("app"), App());
 ```
