@@ -1,6 +1,6 @@
 {
   "name": "guhit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A reactive JavaScript library for building web user interfaces",
   "homepage": "https://github.com/cedmandocdoc/guhit",
   "main": "dist/guhit.cjs.js",
