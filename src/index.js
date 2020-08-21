@@ -4,7 +4,7 @@ const noop = () => {};
 
 export const createState = state => {
   let _state = state;
-  const [control, subject] = emitter();
+  const [control, subject] = emitter({ immediate: true });
   control.open();
   control.next(_state);
   return [
