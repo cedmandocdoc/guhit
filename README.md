@@ -16,16 +16,16 @@ npm install agos guhit
 import { pipe, map } from "agos";
 import { mount, createState, e } from "./src";
 
-const TextCount = count => {
+const TextCount = count$ => {
   // return a transformed id (id-{count})
   // manipulate the <p id="">
   const countId = pipe(
-    count,
+    count$,
     map(c => `id-${c}`)
   );
 
   const currentCount = pipe(
-    count,
+    count$,
     map(c => {
       if (c % 2 === 0) return "Cannot display even number";
       return c;
@@ -44,18 +44,14 @@ const App = () => {
 
   // here count is an observable that gets
   // subscribed on TextCount to change its values
-  const [count, setCount] = createState(0);
-
-  const onMount = () => {
-    const id = setInterval(() => {
-      setCount(count => ++count);
-    }, 1000);
-
-    return () => clearInterval(id);
-  };
+  const count$ = create((open, next, fail, done) => {
+    let count = 0;
+    const id = setInterval(() => next(++count), 100);
+    open();
+  })
 
   // return a div with text count
-  return e("div", {}, {}, ["Hello There", TextCount(count)], onMount);
+  return e("div", {}, {}, ["Hello There", TextCount(count$)]);
 };
 
 mount(document.getElementById("app"), App());
